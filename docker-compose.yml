@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  # Nginx API Gateway serving as the Strangler Proxy
+  gateway:
+    build: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - legacy-monolith
+      - payroll-service
+    networks:
+      - med360-network
+  # Pilot Microservice: HR & Payroll
+  payroll-service:
+    build: ./services/payroll-service
+    environment:
+      - PORT=3000
+      - DATABASE_URL=mysql://payroll_user:payroll_pass@payroll-db:3306/payroll_db
+    depends_on:
+      - payroll-db
+    networks:      
+      - med360-network
+
+
+  # Database for the Payroll Microservice (enforcing Database-per-Service)
+  payroll-db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_DATABASE=payroll_db
+      - MYSQL_USER=payroll_user
+      - MYSQL_PASSWORD=payroll_pass
+      - MYSQL_ROOT_PASSWORD=root_pass
+    volumes:
+      - payroll-db-data:/var/lib/mysql
+    networks:
+      - med360-network
+  # Stub representing the Legacy Monolith
+  # Replace/map this with your existing PHP server container or local environment
+  legacy-monolith:
+    image: php:8.0-apache
+    volumes:
+      # Mount the legacy codebase folder into the Apache webroot
+      - ../:/var/www/html/
+    ports:
+      - "8080:80"
+    networks:
+      - med360-network
+volumes:
+  payroll-db-data:
+networks:
+  med360-network:
+    driver: bridge

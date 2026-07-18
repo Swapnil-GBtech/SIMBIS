@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payroll-service
+  labels:
+    app: payroll-service
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: payroll-service
+
+  template:
+    metadata:
+      labels:
+        app: payroll-service
+
+    spec:
+      containers:
+      - name: payroll-service
+
+        image: <YOUR_DOCKERHUB_USERNAME>/payroll-service:1.0
+
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3000
+
+        envFrom:
+        - configMapRef:
+            name: payroll-config
+
+        - secretRef:
+            name: payroll-secret
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
